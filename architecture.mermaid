@@ -1,0 +1,81 @@
+graph TB
+    subgraph Channels["Customer Channels"]
+        WA["WhatsApp<br/>Cloud API"]
+        EM["Email<br/>Gmail API"]
+        WC["Web Chat<br/>WebSocket"]
+    end
+
+    subgraph Docker["Docker Compose"]
+        subgraph Backend["Django Backend :8000"]
+            WH["Webhook<br/>Endpoints"]
+            WS["WebSocket<br/>Consumer"]
+            UM["Unified Message<br/>Handler"]
+
+            subgraph AIBrain["AI Brain"]
+                CL["Ticket Classifier<br/>Claude Haiku<br/>~$1/M tokens"]
+                KB["Knowledge Base<br/>pgvector RAG"]
+                RG["Response Generator<br/>Claude Sonnet<br/>~$3/M tokens"]
+                GR["Guardrails<br/>Anti-Hallucination"]
+            end
+
+            subgraph Escalation["Escalation Engine"]
+                ED["Escalation Detector<br/>3 Triggers"]
+                SA["Sentiment<br/>Analysis"]
+                HO["Handoff<br/>Package Builder"]
+            end
+        end
+
+        DB[("PostgreSQL<br/>+ pgvector")]
+        RD[("Redis<br/>Channel Layer")]
+
+        subgraph Frontend["Next.js Dashboard :3000"]
+            DASH["Dashboard<br/>Overview"]
+            TQ["Ticket<br/>Queue"]
+            TV["Ticket<br/>Detail View"]
+            AN["Analytics<br/>Panel"]
+            CW["Chat Widget<br/>Embeddable"]
+        end
+    end
+
+    HUMAN["Human Agent"]
+
+    WA -->|webhook POST| WH
+    EM -->|webhook/poll| WH
+    WC -->|ws://| WS
+
+    WH --> UM
+    WS --> UM
+
+    UM --> CL
+    CL -->|"confidence < 0.7<br/>negative sentiment<br/>human request"| ED
+    CL -->|"confidence >= 0.7"| KB
+    ED --> SA
+    ED -->|escalate| HO
+    KB -->|relevant chunks| RG
+    RG --> GR
+    GR -->|safe response| UM
+    HO -->|handoff package| DB
+
+    UM -->|save| DB
+    WS <-->|real-time| RD
+
+    Backend --> DB
+    Frontend -->|REST API| Backend
+    Frontend <-->|WebSocket| RD
+
+    HUMAN -->|resolve ticket| TV
+    TV -->|POST /resolve| Backend
+
+    classDef channel fill:#3b82f6,stroke:#1e40af,color:#fff
+    classDef ai fill:#8b5cf6,stroke:#6d28d9,color:#fff
+    classDef escalation fill:#f59e0b,stroke:#d97706,color:#fff
+    classDef storage fill:#10b981,stroke:#047857,color:#fff
+    classDef frontend fill:#06b6d4,stroke:#0891b2,color:#fff
+    classDef human fill:#ef4444,stroke:#b91c1c,color:#fff
+
+    class WA,EM,WC channel
+    class CL,KB,RG,GR ai
+    class ED,SA,HO escalation
+    class DB,RD storage
+    class DASH,TQ,TV,AN,CW frontend
+    class HUMAN human
