@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    ConversationReplyView,
     DashboardStatsView,
     EscalationDetailView,
     EscalationListView,
@@ -19,5 +20,10 @@ urlpatterns = [
         EscalationResolveView.as_view(),
         name="escalation-resolve",
     ),
-    path("dashboard/stats/", DashboardStatsView.as_view(), name="dashboard-stats"),
+    path(
+        "conversations/<uuid:pk>/reply/",
+        ConversationReplyView.as_view(),
+        name="conversation-reply",
+    ),
+    path("escalations/dashboard/stats/", DashboardStatsView.as_view(), name="dashboard-stats"),
 ]

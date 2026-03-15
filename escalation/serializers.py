@@ -60,5 +60,5 @@ class EscalationListSerializer(serializers.ModelSerializer):
 
 
 class EscalationResolveSerializer(serializers.Serializer):
-    agent_name = serializers.CharField(max_length=100)
+    agent_name = serializers.CharField(max_length=100, required=False, default="Dashboard Agent")
     response = serializers.CharField()

@@ -58,7 +58,7 @@ and must provide accurate, empathetic responses.
 
     try:
         response = client.messages.create(
-            model="claude-sonnet-4-5-20241022",
+            model="claude-sonnet-4-5-20250929",
             max_tokens=1024,
             system=system_prompt,
             messages=messages,

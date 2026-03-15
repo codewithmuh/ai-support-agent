@@ -45,6 +45,10 @@ containing these fields:
         )
 
         raw = response.content[0].text.strip()
+        # Strip markdown code fences if present
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+            raw = raw.rsplit("```", 1)[0].strip()
         result = json.loads(raw)
 
         return {

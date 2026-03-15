@@ -26,6 +26,7 @@ class MessageSerializer(serializers.ModelSerializer):
 
 class ConversationSerializer(serializers.ModelSerializer):
     messages = MessageSerializer(many=True, read_only=True)
+    escalation_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Conversation
@@ -39,8 +40,13 @@ class ConversationSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "messages",
+            "escalation_id",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def get_escalation_id(self, obj) -> str | None:
+        escalation = obj.escalations.filter(resolved=False).first()
+        return str(escalation.id) if escalation else None
 
 
 class ConversationListSerializer(serializers.ModelSerializer):

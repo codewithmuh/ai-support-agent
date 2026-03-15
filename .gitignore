@@ -18,6 +18,7 @@ media/
 # Environment
 .env
 credentials/
+google-credentials.json
 
 # IDE
 .vscode/

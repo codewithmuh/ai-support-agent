@@ -98,6 +98,9 @@ class EscalationResolveView(APIView):
         conversation.assigned_agent = agent_name
         conversation.save(update_fields=["status", "assigned_agent", "updated_at"])
 
+        # Send the response back to the customer via their original channel
+        self._send_to_customer(conversation, response_text)
+
         logger.info(
             "Escalation %s resolved by %s for conversation %s",
             escalation.id,
@@ -111,6 +114,92 @@ class EscalationResolveView(APIView):
                 "escalation_id": str(escalation.id),
                 "resolved_by": agent_name,
                 "resolved_at": now.isoformat(),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def _send_to_customer(self, conversation, message: str):
+        """Send a message back to the customer via their original channel."""
+        try:
+            if conversation.channel == "whatsapp":
+                from channels_app.whatsapp import send_whatsapp_message
+
+                send_whatsapp_message(conversation.sender_id, message)
+            elif conversation.channel == "email":
+                from channels_app.email_handler import send_email_reply
+
+                send_email_reply(
+                    to=conversation.sender_id,
+                    subject="Re: Support Request",
+                    body=message,
+                )
+        except Exception as exc:
+            logger.exception(
+                "Failed to send resolve message to customer %s: %s",
+                conversation.sender_id,
+                exc,
+            )
+
+
+class ConversationReplyView(APIView):
+    """Send a manual reply to a customer without resolving the ticket.
+
+    POST body:
+        message (str): The message to send to the customer.
+        agent_name (str, optional): Name of the agent. Defaults to 'Dashboard Agent'.
+    """
+
+    def post(self, request, pk):
+        message_text = request.data.get("message", "").strip()
+        agent_name = request.data.get("agent_name", "Dashboard Agent")
+
+        if not message_text:
+            return Response(
+                {"error": "Message is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            conversation = Conversation.objects.get(pk=pk)
+        except Conversation.DoesNotExist:
+            return Response(
+                {"error": "Conversation not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Save the agent message
+        msg = Message.objects.create(
+            conversation=conversation,
+            role="agent",
+            content=message_text,
+            metadata={"agent_name": agent_name},
+        )
+
+        # Send to customer via their channel
+        try:
+            if conversation.channel == "whatsapp":
+                from channels_app.whatsapp import send_whatsapp_message
+
+                send_whatsapp_message(conversation.sender_id, message_text)
+            elif conversation.channel == "email":
+                from channels_app.email_handler import send_email_reply
+
+                send_email_reply(
+                    to=conversation.sender_id,
+                    subject="Re: Support Request",
+                    body=message_text,
+                )
+            sent = True
+        except Exception as exc:
+            logger.exception("Failed to send reply: %s", exc)
+            sent = False
+
+        return Response(
+            {
+                "message_id": str(msg.id),
+                "sent": sent,
+                "content": message_text,
+                "created_at": msg.created_at.isoformat(),
             },
             status=status.HTTP_200_OK,
         )

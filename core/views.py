@@ -30,13 +30,22 @@ def process_message_internal(
 
     Returns dict with: response, classification, conversation_id, escalated
     """
-    # Find or create conversation
-    conversation, created = Conversation.objects.get_or_create(
-        sender_id=sender_id,
-        channel=channel,
-        status="active",
-        defaults={"sender_name": sender_name or sender_id},
+    # Find existing open conversation or create a new one
+    conversation = (
+        Conversation.objects.filter(
+            sender_id=sender_id,
+            channel=channel,
+        )
+        .exclude(status="resolved")
+        .order_by("-created_at")
+        .first()
     )
+    if conversation is None:
+        conversation = Conversation.objects.create(
+            sender_id=sender_id,
+            channel=channel,
+            sender_name=sender_name or sender_id,
+        )
 
     # Save customer message
     Message.objects.create(
@@ -164,13 +173,22 @@ class ProcessMessageView(APIView):
         channel = data["channel"]
         sender_name = data.get("sender_name", "")
 
-        # 1. Find or create conversation
-        conversation, created = Conversation.objects.get_or_create(
-            sender_id=sender_id,
-            channel=channel,
-            status="active",
-            defaults={"sender_name": sender_name},
+        # 1. Find existing open conversation or create a new one
+        conversation = (
+            Conversation.objects.filter(
+                sender_id=sender_id,
+                channel=channel,
+            )
+            .exclude(status="resolved")
+            .order_by("-created_at")
+            .first()
         )
+        if conversation is None:
+            conversation = Conversation.objects.create(
+                sender_id=sender_id,
+                channel=channel,
+                sender_name=sender_name or sender_id,
+            )
 
         # 2. Save the customer message
         Message.objects.create(
