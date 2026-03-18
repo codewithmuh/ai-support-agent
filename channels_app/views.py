@@ -16,6 +16,7 @@ from .serializers import (
     EmailWebhookSerializer,
     WhatsAppWebhookPayloadSerializer,
 )
+from .telegram import parse_telegram_update, send_telegram_message
 from .whatsapp import parse_whatsapp_webhook, send_whatsapp_message
 
 logger = logging.getLogger(__name__)
@@ -286,3 +287,53 @@ class GmailPollView(APIView):
                 {"error": "Failed to poll emails"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class TelegramWebhookView(APIView):
+    """Telegram Bot API webhook endpoint.
+
+    POST — Receives incoming messages from Telegram, processes them
+           through the AI brain, and sends responses back.
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        """Handle incoming Telegram update."""
+        unified_msg = parse_telegram_update(request.data)
+
+        if unified_msg is None:
+            # Not a text message (could be edit, reaction, etc.) — acknowledge
+            return Response({"status": "ok"}, status=status.HTTP_200_OK)
+
+        logger.info(
+            "Telegram message from %s (%s): %s",
+            unified_msg.sender_name,
+            unified_msg.sender_id,
+            unified_msg.content[:50],
+        )
+
+        try:
+            from core.views import process_message_internal
+
+            result = process_message_internal(
+                message=unified_msg.content,
+                sender_id=unified_msg.sender_id,
+                sender_name=unified_msg.sender_name,
+                channel="telegram",
+            )
+
+            send_telegram_message(
+                chat_id=unified_msg.sender_id,
+                message=result["response"],
+            )
+
+        except Exception as exc:
+            logger.exception("Error processing Telegram message: %s", exc)
+            send_telegram_message(
+                chat_id=unified_msg.sender_id,
+                message="Sorry, I'm having trouble processing your request. Please try again.",
+            )
+
+        return Response({"status": "ok"}, status=status.HTTP_200_OK)

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { WS_URL } from "@/lib/api";
 
 interface ChatMessage {
   id: number;
@@ -21,7 +22,7 @@ export default function ChatWidget() {
   useEffect(() => {
     if (!isOpen) return;
 
-    const ws = new WebSocket("ws://localhost:8000/ws/chat/");
+    const ws = new WebSocket(`${WS_URL}/ws/chat/`);
     wsRef.current = ws;
 
     ws.onopen = () => setConnected(true);
@@ -75,7 +76,7 @@ export default function ChatWidget() {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-500 text-white shadow-lg flex items-center justify-center transition-all z-50"
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 dark:shadow-indigo-900/30 flex items-center justify-center transition-all z-50"
       >
         {isOpen ? (
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,26 +91,22 @@ export default function ChatWidget() {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 w-96 h-[500px] bg-[#1e293b] rounded-2xl shadow-2xl border border-gray-700 flex flex-col z-50 overflow-hidden">
+        <div className="fixed bottom-24 right-6 w-96 h-[500px] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl shadow-gray-200/50 dark:shadow-black/30 border border-gray-200 dark:border-slate-700 flex flex-col z-50 overflow-hidden">
           {/* Header */}
-          <div className="bg-blue-600 px-5 py-4 flex items-center justify-between">
+          <div className="bg-indigo-600 px-5 py-4 flex items-center justify-between">
             <div>
-              <h3 className="text-white font-semibold">Chat Support</h3>
-              <p className="text-blue-200 text-xs">
+              <h3 className="text-white font-semibold text-sm">Chat Support</h3>
+              <p className="text-indigo-200 text-xs mt-0.5">
                 {connected ? "Connected" : "Connecting..."}
               </p>
             </div>
-            <div
-              className={`w-2.5 h-2.5 rounded-full ${
-                connected ? "bg-green-400" : "bg-red-400"
-              }`}
-            />
+            <div className={`w-2 h-2 rounded-full ${connected ? "bg-emerald-400" : "bg-red-400"}`} />
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 dark:bg-slate-900">
             {messages.length === 0 && (
-              <div className="text-center text-gray-500 text-sm mt-8">
+              <div className="text-center text-gray-400 dark:text-gray-500 text-sm mt-8">
                 Send a message to start chatting
               </div>
             )}
@@ -121,8 +118,8 @@ export default function ChatWidget() {
                 <div
                   className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
                     msg.role === "user"
-                      ? "bg-blue-600 text-white rounded-br-none"
-                      : "bg-gray-800 text-gray-200 rounded-bl-none"
+                      ? "bg-indigo-600 text-white rounded-br-sm"
+                      : "bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-slate-700 shadow-sm rounded-bl-sm"
                   }`}
                 >
                   {msg.content}
@@ -133,7 +130,7 @@ export default function ChatWidget() {
           </div>
 
           {/* Input */}
-          <div className="p-3 border-t border-gray-700">
+          <div className="p-3 border-t border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800">
             <div className="flex gap-2">
               <input
                 type="text"
@@ -141,11 +138,11 @@ export default function ChatWidget() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                 placeholder="Type a message..."
-                className="flex-1 bg-gray-800 text-white text-sm rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+                className="flex-1 bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-white text-sm rounded-xl px-4 py-2.5 outline-none border border-gray-200 dark:border-slate-600 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/50 placeholder-gray-400 dark:placeholder-gray-500 transition-all"
               />
               <button
                 onClick={sendMessage}
-                className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-4 py-2.5 transition-colors"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2.5 transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />

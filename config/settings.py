@@ -35,10 +35,12 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "channels",
+    "rest_framework_simplejwt",
     # Local
     "core",
     "channels_app",
     "escalation",
+    "teams",
 ]
 
 MIDDLEWARE = [
@@ -50,6 +52,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "teams.middleware.TeamMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -124,8 +127,25 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
     ],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+}
+
+# ---------------------------------------------------------------------------
+# Simple JWT
+# ---------------------------------------------------------------------------
+
+from datetime import timedelta  # noqa: E402
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": False,
 }
 
 # ---------------------------------------------------------------------------
@@ -160,6 +180,20 @@ WHATSAPP_VERIFY_TOKEN = env("WHATSAPP_VERIFY_TOKEN", default="")
 # ---------------------------------------------------------------------------
 
 ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")
+CLAUDE_HAIKU_MODEL = env("CLAUDE_HAIKU_MODEL", default="claude-haiku-4-5-20251001")
+CLAUDE_SONNET_MODEL = env("CLAUDE_SONNET_MODEL", default="claude-sonnet-4-5-20250929")
+
+# ---------------------------------------------------------------------------
+# OpenAI (embeddings)
+# ---------------------------------------------------------------------------
+
+OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
+
+# ---------------------------------------------------------------------------
+# Telegram
+# ---------------------------------------------------------------------------
+
+TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", default="")
 
 # ---------------------------------------------------------------------------
 # Google / Gmail

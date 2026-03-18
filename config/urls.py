@@ -9,4 +9,5 @@ urlpatterns = [
     path("api/", include("core.urls")),
     path("api/", include("channels_app.urls")),
     path("api/", include("escalation.urls")),
+    path("api/", include("teams.urls")),
 ]

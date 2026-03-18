@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import TicketQueue from "@/components/TicketQueue";
+import { API_URL } from "@/lib/api";
 
 interface Conversation {
   id: number;
@@ -21,22 +22,14 @@ export default function TicketsPage() {
   const [activeTab, setActiveTab] = useState<string>("all");
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/conversations/")
+    fetch(`${API_URL}/api/conversations/`)
       .then((res) => res.json())
       .then((data) => {
         setConversations(Array.isArray(data) ? data : data.results || []);
         setLoading(false);
       })
       .catch(() => {
-        // Demo data
-        setConversations([
-          { id: 1, channel: "whatsapp", status: "active", sender_name: "John Doe", sender_identifier: "+1234567890", last_message: "I need help with my order", created_at: "2026-03-15T10:30:00Z" },
-          { id: 2, channel: "email", status: "escalated", sender_name: "Jane Smith", sender_identifier: "jane@email.com", last_message: "This is unacceptable service", created_at: "2026-03-15T09:15:00Z" },
-          { id: 3, channel: "webchat", status: "resolved", sender_name: "Bob Wilson", sender_identifier: "bob_web", last_message: "Thanks for the help!", created_at: "2026-03-15T08:45:00Z" },
-          { id: 4, channel: "whatsapp", status: "active", sender_name: "Alice Brown", sender_identifier: "+9876543210", last_message: "Where is my package?", created_at: "2026-03-15T08:00:00Z" },
-          { id: 5, channel: "email", status: "escalated", sender_name: "Charlie Davis", sender_identifier: "charlie@email.com", last_message: "I want a refund immediately", created_at: "2026-03-15T07:30:00Z" },
-          { id: 6, channel: "webchat", status: "resolved", sender_name: "Diana Miller", sender_identifier: "diana_web", last_message: "That solved my issue, thank you", created_at: "2026-03-14T22:00:00Z" },
-        ]);
+        setConversations([]);
         setLoading(false);
       });
   }, []);
@@ -47,35 +40,42 @@ export default function TicketsPage() {
       : conversations.filter((c) => c.status === activeTab);
 
   return (
-    <div className="p-8">
-      <h2 className="text-2xl font-bold mb-6">Ticket Queue</h2>
+    <div className="p-8 max-w-7xl">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Tickets</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage customer support conversations</p>
+      </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 mb-6">
-        {TABS.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
-              activeTab === tab
-                ? "bg-blue-600 text-white"
-                : "bg-gray-800 text-gray-400 hover:text-white"
-            }`}
-          >
-            {tab}
-            <span className="ml-2 text-xs opacity-70">
-              ({tab === "all"
-                ? conversations.length
-                : conversations.filter((c) => c.status === tab).length})
-            </span>
-          </button>
-        ))}
+      <div className="flex gap-1.5 mb-6 bg-gray-100 dark:bg-slate-700/50 rounded-lg p-1 w-fit">
+        {TABS.map((tab) => {
+          const count =
+            tab === "all"
+              ? conversations.length
+              : conversations.filter((c) => c.status === tab).length;
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 rounded-md text-sm font-medium capitalize transition-all ${
+                activeTab === tab
+                  ? "bg-white dark:bg-slate-800 text-gray-900 dark:text-white shadow-sm"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+              }`}
+            >
+              {tab}
+              <span className={`ml-1.5 text-xs ${activeTab === tab ? "text-gray-500 dark:text-gray-400" : "text-gray-400 dark:text-gray-500"}`}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Table */}
-      <div className="bg-[#1e293b] rounded-xl border border-gray-800">
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">Loading tickets...</div>
+          <div className="p-12 text-center text-gray-400 dark:text-gray-500 text-sm">Loading tickets...</div>
         ) : (
           <TicketQueue conversations={filtered} />
         )}

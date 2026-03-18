@@ -133,6 +133,10 @@ class EscalationResolveView(APIView):
                     subject="Re: Support Request",
                     body=message,
                 )
+            elif conversation.channel == "telegram":
+                from channels_app.telegram import send_telegram_message
+
+                send_telegram_message(conversation.sender_id, message)
         except Exception as exc:
             logger.exception(
                 "Failed to send resolve message to customer %s: %s",
@@ -189,6 +193,10 @@ class ConversationReplyView(APIView):
                     subject="Re: Support Request",
                     body=message_text,
                 )
+            elif conversation.channel == "telegram":
+                from channels_app.telegram import send_telegram_message
+
+                send_telegram_message(conversation.sender_id, message_text)
             sent = True
         except Exception as exc:
             logger.exception("Failed to send reply: %s", exc)
@@ -250,13 +258,42 @@ class DashboardStatsView(APIView):
         # and the next AI/agent message in today's conversations
         avg_response_time = self._calculate_avg_response_time(today_start)
 
+        # Overall stats (all-time)
+        all_conversations = Conversation.objects.all()
+        total_tickets = all_conversations.count()
+        total_open = all_conversations.filter(status__in=["active", "escalated"]).count()
+        total_escalated = all_conversations.filter(status="escalated").count()
+        total_resolved = all_conversations.filter(status="resolved").count()
+
+        # Recent escalations for dashboard list
+        recent_escalations = list(
+            Escalation.objects.select_related("conversation")
+            .order_by("-created_at")[:10]
+            .values(
+                "id",
+                "reason",
+                "resolved",
+                "created_at",
+                conversation_id_val=F("conversation__id"),
+                customer_name=F("conversation__sender_name"),
+            )
+        )
+        for esc in recent_escalations:
+            esc["conversation_id"] = str(esc.pop("conversation_id_val"))
+            esc["status"] = "resolved" if esc.pop("resolved") else "pending"
+
         return Response(
             {
                 "total_tickets_today": total_tickets_today,
+                "total_tickets": total_tickets,
+                "total_open": total_open,
+                "total_escalated": total_escalated,
+                "total_resolved": total_resolved,
                 "ai_resolved": ai_resolved,
                 "escalated": escalated_today,
                 "avg_response_time": avg_response_time,
                 "channel_breakdown": channel_breakdown,
+                "recent_escalations": recent_escalations,
             },
             status=status.HTTP_200_OK,
         )

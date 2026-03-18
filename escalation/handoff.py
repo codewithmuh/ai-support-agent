@@ -38,7 +38,7 @@ def _generate_ai_summary(conversation_history: list[dict]) -> str:
 
     try:
         response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model=settings.CLAUDE_HAIKU_MODEL,
             max_tokens=512,
             system=(
                 "You are a support ticket summarizer. Provide a concise summary "
@@ -81,7 +81,7 @@ def _generate_suggested_response(
 
     try:
         response = client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model=settings.CLAUDE_SONNET_MODEL,
             max_tokens=1024,
             system=(
                 "You are helping a human support agent draft a response to a "

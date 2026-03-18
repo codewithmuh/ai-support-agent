@@ -36,7 +36,7 @@ containing these fields:
 
     try:
         response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model=settings.CLAUDE_HAIKU_MODEL,
             max_tokens=256,
             system=system_prompt,
             messages=[

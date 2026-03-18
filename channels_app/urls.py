@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import EmailWebhookView, GmailPollView, WhatsAppWebhookView
+from .views import EmailWebhookView, GmailPollView, TelegramWebhookView, WhatsAppWebhookView
 
 app_name = "channels_app"
 
@@ -19,5 +19,10 @@ urlpatterns = [
         "email/poll/",
         GmailPollView.as_view(),
         name="gmail-poll",
+    ),
+    path(
+        "webhooks/telegram/",
+        TelegramWebhookView.as_view(),
+        name="telegram-webhook",
     ),
 ]

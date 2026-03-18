@@ -2,23 +2,49 @@ import hashlib
 import logging
 import math
 
+from django.conf import settings
+
 logger = logging.getLogger(__name__)
+
+_openai_client = None
+
+
+def _get_openai_client():
+    """Lazy-initialize the OpenAI client."""
+    global _openai_client
+    if _openai_client is None:
+        from openai import OpenAI
+
+        _openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    return _openai_client
 
 
 def generate_embedding(text: str) -> list[float]:
     """Generate a 1536-dimensional embedding vector for the given text.
 
-    TODO: Replace this placeholder with a real embedding model. Options:
-      - OpenAI text-embedding-3-small (1536 dims)
-      - Voyage AI voyage-3 via the voyageai SDK
-      - Local sentence-transformers model
-    The current implementation produces a deterministic pseudo-embedding
-    based on a hash of the input text. It is NOT suitable for production
-    semantic search — only for development and testing.
+    Uses OpenAI text-embedding-3-small (1536 dims) for production-quality
+    semantic search. Falls back to hash-based pseudo-embeddings if the
+    OpenAI API key is not configured.
     """
-    # Deterministic pseudo-embedding from text hash
+    if not getattr(settings, "OPENAI_API_KEY", ""):
+        logger.warning("OPENAI_API_KEY not set — using pseudo-embeddings (not suitable for production)")
+        return _pseudo_embedding(text)
+
+    try:
+        client = _get_openai_client()
+        response = client.embeddings.create(
+            model="text-embedding-3-small",
+            input=text,
+        )
+        return response.data[0].embedding
+    except Exception as e:
+        logger.error("OpenAI embedding failed, falling back to pseudo: %s", e)
+        return _pseudo_embedding(text)
+
+
+def _pseudo_embedding(text: str) -> list[float]:
+    """Deterministic pseudo-embedding from text hash. Dev/testing only."""
     digest = hashlib.sha512(text.encode("utf-8")).hexdigest()
-    # Extend the hash to cover 1536 floats
     extended = digest
     while len(extended) < 1536 * 2:
         extended += hashlib.sha512(extended.encode("utf-8")).hexdigest()
@@ -26,9 +52,8 @@ def generate_embedding(text: str) -> list[float]:
     raw = []
     for i in range(1536):
         byte_val = int(extended[i * 2 : i * 2 + 2], 16)
-        raw.append((byte_val / 255.0) * 2 - 1)  # normalize to [-1, 1]
+        raw.append((byte_val / 255.0) * 2 - 1)
 
-    # L2-normalize so cosine distance is meaningful
     magnitude = math.sqrt(sum(v * v for v in raw))
     if magnitude > 0:
         raw = [v / magnitude for v in raw]
@@ -61,9 +86,7 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]
     while start < len(text):
         end = start + chunk_size
 
-        # Try to break at a sentence or word boundary
         if end < len(text):
-            # Look for sentence boundary
             for sep in [". ", ".\n", "\n\n", "\n", " "]:
                 boundary = text.rfind(sep, start + chunk_size // 2, end)
                 if boundary != -1:
