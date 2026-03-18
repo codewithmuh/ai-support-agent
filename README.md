@@ -32,44 +32,8 @@ Built with Django, Claude AI (Haiku + Sonnet), PostgreSQL + pgvector, and Next.j
 
 ## Architecture
 
-```mermaid
-graph TB
-    subgraph Channels["Customer Channels"]
-        WA["WhatsApp"]
-        TG["Telegram"]
-        EM["Email (Gmail)"]
-        WC["Web Chat"]
-    end
+<img width="1366" height="879" alt="Screenshot 2026-03-18 at 11 51 45 PM" src="https://github.com/user-attachments/assets/34fbf1d4-7bc2-4a1d-afc4-89fa29c03bbe" />
 
-    subgraph Docker["Docker Compose Stack"]
-        subgraph Backend["Django Backend"]
-            UM["Unified Message Handler"]
-            CL["Classifier — Claude Haiku"]
-            KB["Knowledge Base — pgvector RAG"]
-            RG["Response Generator — Claude Sonnet"]
-            GR["Guardrails (3 layers)"]
-            ESC["Escalation Engine"]
-        end
-
-        DB[("PostgreSQL + pgvector")]
-        RD[("Redis")]
-
-        subgraph Frontend["Next.js Dashboard"]
-            DASH["Tickets + Analytics + Settings"]
-        end
-    end
-
-    HUMAN["Human Agent"]
-
-    WA & TG & EM & WC --> UM
-    UM --> CL --> KB --> RG --> GR
-    CL -->|low confidence / angry / human request| ESC
-    ESC -->|handoff with context| HUMAN
-    Backend <--> DB
-    Backend <--> RD
-    Frontend -->|REST + WebSocket| Backend
-    HUMAN --> Frontend
-```
 
 ### Message Flow (8 Steps)
 
