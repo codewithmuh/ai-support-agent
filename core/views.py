@@ -80,6 +80,20 @@ def process_message_internal(
         content=message,
     )
 
+    # If human-only mode is on, skip AI entirely — wait for human agent
+    if conversation.human_only:
+        logger.info(
+            "Human-only mode for conversation %s — skipping AI pipeline",
+            conversation.id,
+        )
+        return {
+            "response": None,
+            "classification": {"category": "human_only", "confidence": 1.0, "reasoning": "Human-only mode enabled"},
+            "conversation_id": str(conversation.id),
+            "escalated": False,
+            "human_only": True,
+        }
+
     # Classify with Haiku
     classification = classify_ticket(message)
 
@@ -358,6 +372,38 @@ class ConversationListView(generics.ListAPIView):
 
     queryset = Conversation.objects.all()
     serializer_class = ConversationListSerializer
+
+
+class ToggleHumanOnlyView(APIView):
+    """POST — Toggle human-only mode on a conversation.
+
+    When enabled, AI will not respond to new messages — only human agents can reply.
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request, pk):
+        try:
+            conversation = Conversation.objects.get(pk=pk)
+        except Conversation.DoesNotExist:
+            return Response(
+                {"error": "Conversation not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Toggle or set explicitly
+        human_only = request.data.get("human_only")
+        if human_only is not None:
+            conversation.human_only = bool(human_only)
+        else:
+            conversation.human_only = not conversation.human_only
+
+        conversation.save(update_fields=["human_only", "updated_at"])
+
+        return Response({
+            "conversation_id": str(conversation.id),
+            "human_only": conversation.human_only,
+        })
 
 
 class ConversationDetailView(generics.RetrieveAPIView):

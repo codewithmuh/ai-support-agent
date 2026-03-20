@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.utils.text import slugify
 from rest_framework import serializers
 
-from .models import Team, TeamGmailConfig, TeamTelegramConfig, TeamWhatsAppConfig
+from .models import Team, TeamGmailConfig, TeamMessengerConfig, TeamTelegramConfig, TeamWhatsAppConfig
 
 
 # ---------------------------------------------------------------------------
@@ -18,22 +18,31 @@ class TeamSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at", "updated_at"]
 
 
+class TeamAIConfigSerializer(serializers.Serializer):
+    anthropic_api_key = serializers.CharField(required=False, allow_blank=True)
+    openai_api_key = serializers.CharField(required=False, allow_blank=True)
+    has_anthropic_key = serializers.SerializerMethodField(read_only=True)
+    has_openai_key = serializers.SerializerMethodField(read_only=True)
+
+    def get_has_anthropic_key(self, obj) -> bool:
+        return bool(getattr(obj, "anthropic_api_key", ""))
+
+    def get_has_openai_key(self, obj) -> bool:
+        return bool(getattr(obj, "openai_api_key", ""))
+
+
 # ---------------------------------------------------------------------------
 # Channel configs
 # ---------------------------------------------------------------------------
 
 
 class TeamWhatsAppConfigSerializer(serializers.ModelSerializer):
-    access_token = serializers.CharField(write_only=True, required=True)
-    access_token_display = serializers.SerializerMethodField(read_only=True)
-
     class Meta:
         model = TeamWhatsAppConfig
         fields = [
             "id",
             "phone_number_id",
             "access_token",
-            "access_token_display",
             "verify_token",
             "is_active",
             "created_at",
@@ -41,35 +50,21 @@ class TeamWhatsAppConfigSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
 
-    def get_access_token_display(self, obj: TeamWhatsAppConfig) -> str:
-        """Mask the access token — show only the last 8 characters."""
-        if obj.access_token and len(obj.access_token) > 8:
-            return f"{'*' * 12}{obj.access_token[-8:]}"
-        return "********"
-
 
 class TeamGmailConfigSerializer(serializers.ModelSerializer):
-    credentials_json = serializers.CharField(write_only=True, required=True)
-    credentials_json_display = serializers.SerializerMethodField(read_only=True)
-
     class Meta:
         model = TeamGmailConfig
         fields = [
             "id",
+            "google_client_id",
+            "google_client_secret",
             "credentials_json",
-            "credentials_json_display",
             "watch_email",
             "is_active",
             "created_at",
             "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
-
-    def get_credentials_json_display(self, obj: TeamGmailConfig) -> str:
-        """Mask the credentials JSON on read."""
-        if obj.credentials_json:
-            return "***** (credentials stored)"
-        return ""
 
 
 # ---------------------------------------------------------------------------
@@ -78,15 +73,11 @@ class TeamGmailConfigSerializer(serializers.ModelSerializer):
 
 
 class TeamTelegramConfigSerializer(serializers.ModelSerializer):
-    bot_token = serializers.CharField(write_only=True, required=True)
-    bot_token_display = serializers.SerializerMethodField(read_only=True)
-
     class Meta:
         model = TeamTelegramConfig
         fields = [
             "id",
             "bot_token",
-            "bot_token_display",
             "bot_username",
             "is_active",
             "created_at",
@@ -94,10 +85,21 @@ class TeamTelegramConfigSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
 
-    def get_bot_token_display(self, obj: TeamTelegramConfig) -> str:
-        if obj.bot_token and len(obj.bot_token) > 8:
-            return f"{'*' * 12}{obj.bot_token[-8:]}"
-        return "********"
+
+class TeamMessengerConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TeamMessengerConfig
+        fields = [
+            "id",
+            "page_access_token",
+            "page_id",
+            "verify_token",
+            "instagram_enabled",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
 
 
 class SignupSerializer(serializers.Serializer):

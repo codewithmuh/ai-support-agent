@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const PUBLIC_PATHS = ["/", "/login", "/signup", "/privacy", "/terms"];
 
@@ -97,6 +98,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <NotificationBell />
               <ThemeToggleButton />
               <button
                 onClick={logout}

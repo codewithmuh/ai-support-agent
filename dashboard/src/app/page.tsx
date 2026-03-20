@@ -5,6 +5,7 @@ import Link from "next/link";
 import { API_URL } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { LandingPage } from "@/components/LandingPage";
+import { OnboardingWalkthrough } from "@/components/OnboardingWalkthrough";
 
 interface DashboardStats {
   total_tickets: number;
@@ -48,12 +49,23 @@ export default function DashboardPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [sandbox, setSandbox] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("dashboard_sandbox") === "true";
     }
     return false;
   });
+
+  // Check if onboarding should be shown
+  useEffect(() => {
+    if (isAuthenticated && typeof window !== "undefined") {
+      const completed = localStorage.getItem("onboarding_completed");
+      if (!completed) {
+        setShowOnboarding(true);
+      }
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -121,6 +133,9 @@ export default function DashboardPage() {
 
   return (
     <div className="p-8 max-w-7xl">
+      {showOnboarding && (
+        <OnboardingWalkthrough onComplete={() => setShowOnboarding(false)} />
+      )}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h2>

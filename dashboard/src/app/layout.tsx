@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { ThemeProvider } from "@/lib/theme";
+import { NotificationProvider } from "@/lib/notifications";
 import { LayoutShell } from "@/components/LayoutShell";
 
 export const metadata: Metadata = {
@@ -19,7 +20,9 @@ export default function RootLayout({
       <body className="min-h-screen bg-[#f8fafc] dark:bg-slate-900 transition-colors">
         <ThemeProvider>
           <AuthProvider>
-            <LayoutShell>{children}</LayoutShell>
+            <NotificationProvider>
+              <LayoutShell>{children}</LayoutShell>
+            </NotificationProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

@@ -16,6 +16,7 @@ from .serializers import (
     EmailWebhookSerializer,
     WhatsAppWebhookPayloadSerializer,
 )
+from .messenger import parse_messenger_webhook, send_messenger_message
 from .telegram import parse_telegram_update, send_telegram_message
 from .whatsapp import parse_whatsapp_webhook, send_whatsapp_message
 
@@ -35,20 +36,38 @@ class WhatsAppWebhookView(APIView):
     authentication_classes = []
 
     def get(self, request):
-        """Handle WhatsApp webhook verification."""
+        """Handle WhatsApp webhook verification.
+
+        Checks the verify token against team configs stored in the database.
+        Teams configure their verify token via the dashboard Settings > WhatsApp.
+        """
         mode = request.query_params.get("hub.mode")
         token = request.query_params.get("hub.verify_token")
         challenge = request.query_params.get("hub.challenge")
 
-        verify_token = getattr(settings, "WHATSAPP_VERIFY_TOKEN", "")
+        if mode != "subscribe" or not token or not challenge:
+            return Response(
+                {"error": "Missing verification parameters"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        if mode == "subscribe" and token == verify_token:
+        # Check team configs in database
+        token_matches = False
+        try:
+            from teams.models import TeamWhatsAppConfig
+
+            token_matches = TeamWhatsAppConfig.objects.filter(
+                verify_token=token, is_active=True
+            ).exists()
+        except Exception:
+            pass
+
+        if token_matches:
             logger.info("WhatsApp webhook verified successfully.")
             return Response(int(challenge), status=status.HTTP_200_OK)
 
         logger.warning(
-            "WhatsApp webhook verification failed. mode=%s, token=%s",
-            mode,
+            "WhatsApp webhook verification failed. token=%s",
             token,
         )
         return Response(
@@ -78,11 +97,12 @@ class WhatsAppWebhookView(APIView):
                 channel="whatsapp",
             )
 
-            # Send AI response back to the user
-            send_whatsapp_message(
-                phone_number=unified_msg.sender_id,
-                message=result["response"],
-            )
+            # Send AI response back — unless human_only mode (no response)
+            if result.get("response"):
+                send_whatsapp_message(
+                    phone_number=unified_msg.sender_id,
+                    message=result["response"],
+                )
 
         except Exception as exc:
             logger.exception("Error processing WhatsApp message: %s", exc)
@@ -254,12 +274,13 @@ class GmailPollView(APIView):
                     )
                     thread_id = unified_msg.metadata.get("thread_id", "")
 
-                    send_email_reply(
-                        to=unified_msg.sender_id,
-                        subject=subject,
-                        body=result["response"],
-                        thread_id=thread_id,
-                    )
+                    if result.get("response"):
+                        send_email_reply(
+                            to=unified_msg.sender_id,
+                            subject=subject,
+                            body=result["response"],
+                            thread_id=thread_id,
+                        )
 
                     msg_id = unified_msg.metadata.get("message_id", "")
                     if msg_id:
@@ -324,10 +345,11 @@ class TelegramWebhookView(APIView):
                 channel="telegram",
             )
 
-            send_telegram_message(
-                chat_id=unified_msg.sender_id,
-                message=result["response"],
-            )
+            if result.get("response"):
+                send_telegram_message(
+                    chat_id=unified_msg.sender_id,
+                    message=result["response"],
+                )
 
         except Exception as exc:
             logger.exception("Error processing Telegram message: %s", exc)
@@ -337,3 +359,105 @@ class TelegramWebhookView(APIView):
             )
 
         return Response({"status": "ok"}, status=status.HTTP_200_OK)
+
+
+class MessengerWebhookView(APIView):
+    """
+    Facebook Messenger & Instagram DM webhook endpoint.
+
+    Both Messenger and Instagram DMs use the same Meta Graph API webhook.
+    When an Instagram account is linked to a Facebook Page, Instagram DMs
+    arrive through the same webhook with an Instagram-scoped sender ID.
+
+    GET  — Webhook verification (echoes hub.challenge when token matches).
+    POST — Receives incoming messages, processes them through the AI brain,
+           and sends responses back via the Graph API Send API.
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        """Handle Messenger/Instagram webhook verification.
+
+        Checks the verify token against team configs stored in the database.
+        Teams configure their verify token via the dashboard Settings > Messenger.
+        """
+        mode = request.query_params.get("hub.mode")
+        token = request.query_params.get("hub.verify_token")
+        challenge = request.query_params.get("hub.challenge")
+
+        if mode != "subscribe" or not token or not challenge:
+            return Response(
+                {"error": "Missing verification parameters"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Check team configs in database
+        token_matches = False
+        try:
+            from teams.models import TeamMessengerConfig
+
+            token_matches = TeamMessengerConfig.objects.filter(
+                verify_token=token, is_active=True
+            ).exists()
+        except Exception:
+            pass
+
+        if token_matches:
+            logger.info("Messenger webhook verified successfully.")
+            return Response(int(challenge), status=status.HTTP_200_OK)
+
+        logger.warning(
+            "Messenger webhook verification failed. token=%s",
+            token,
+        )
+        return Response(
+            {"error": "Verification failed"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    def post(self, request):
+        """Handle incoming Messenger/Instagram messages."""
+        # Messenger webhooks have object="page"
+        if request.data.get("object") != "page":
+            return Response(status=status.HTTP_200_OK)
+
+        unified_msg = parse_messenger_webhook(request.data)
+        if unified_msg is None:
+            # Not a user message (e.g., delivery receipt) — acknowledge silently
+            return Response(status=status.HTTP_200_OK)
+
+        logger.info(
+            "Messenger/%s message from %s: %s",
+            unified_msg.channel,
+            unified_msg.sender_id,
+            unified_msg.message[:50],
+        )
+
+        try:
+            from core.views import process_message_internal
+
+            result = process_message_internal(
+                message=unified_msg.message,
+                sender_id=unified_msg.sender_id,
+                sender_name=unified_msg.sender_name,
+                channel=unified_msg.channel,
+            )
+
+            # Send AI response back — unless human_only mode (no response)
+            if result.get("response"):
+                send_messenger_message(
+                    recipient_id=unified_msg.sender_id,
+                    message=result["response"],
+                )
+
+        except Exception as exc:
+            logger.exception("Error processing Messenger message: %s", exc)
+            # Still return 200 to prevent Meta from retrying
+            send_messenger_message(
+                recipient_id=unified_msg.sender_id,
+                message="Sorry, something went wrong. Please try again later.",
+            )
+
+        return Response(status=status.HTTP_200_OK)

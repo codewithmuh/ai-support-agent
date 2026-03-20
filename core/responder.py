@@ -21,7 +21,9 @@ def generate_response(
     Returns:
         Dict with 'response' (str) and 'confidence' (float).
     """
-    client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+    from .ai_keys import get_anthropic_api_key
+
+    client = anthropic.Anthropic(api_key=get_anthropic_api_key())
 
     system_prompt = """<role>
 You are a helpful, professional customer support agent. You represent the company

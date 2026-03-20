@@ -282,6 +282,38 @@ class DashboardStatsView(APIView):
             esc["conversation_id"] = str(esc.pop("conversation_id_val"))
             esc["status"] = "resolved" if esc.pop("resolved") else "pending"
 
+        # Human-resolved = resolved with escalation records
+        human_resolved = (
+            today_conversations.filter(status="resolved")
+            .filter(escalations__isnull=False)
+            .distinct()
+            .count()
+        )
+
+        # Week stats
+        week_start = today_start - timezone.timedelta(days=7)
+        total_week = Conversation.objects.filter(created_at__gte=week_start).count()
+
+        # All-time channel breakdown (for analytics page)
+        all_channel_breakdown = dict(
+            all_conversations.values_list("channel")
+            .annotate(count=Count("id"))
+            .values_list("channel", "count")
+        )
+
+        # All-time AI resolved
+        all_ai_resolved = (
+            all_conversations.filter(status="resolved")
+            .exclude(escalations__isnull=False)
+            .count()
+        )
+        all_human_resolved = (
+            all_conversations.filter(status="resolved")
+            .filter(escalations__isnull=False)
+            .distinct()
+            .count()
+        )
+
         return Response(
             {
                 "total_tickets_today": total_tickets_today,
@@ -289,10 +321,16 @@ class DashboardStatsView(APIView):
                 "total_open": total_open,
                 "total_escalated": total_escalated,
                 "total_resolved": total_resolved,
-                "ai_resolved": ai_resolved,
+                "ai_resolved": all_ai_resolved,
+                "human_resolved": all_human_resolved,
                 "escalated": escalated_today,
                 "avg_response_time": avg_response_time,
-                "channel_breakdown": channel_breakdown,
+                "avg_response_time_ai": avg_response_time,
+                "avg_response_time_human": None,
+                "channel_breakdown": all_channel_breakdown,
+                "channels": all_channel_breakdown,
+                "total_today": total_tickets_today,
+                "total_week": total_week,
                 "recent_escalations": recent_escalations,
             },
             status=status.HTTP_200_OK,

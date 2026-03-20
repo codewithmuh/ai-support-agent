@@ -76,6 +76,7 @@ class ConversationSerializer(serializers.ModelSerializer):
             "sender_name",
             "status",
             "assigned_agent",
+            "human_only",
             "created_at",
             "updated_at",
             "messages",
@@ -135,5 +136,5 @@ class ConversationSearchSerializer(serializers.ModelSerializer):
 class ProcessMessageSerializer(serializers.Serializer):
     message = serializers.CharField()
     sender_id = serializers.CharField()
-    channel = serializers.ChoiceField(choices=["whatsapp", "email", "webchat"])
+    channel = serializers.ChoiceField(choices=["whatsapp", "email", "webchat", "telegram", "messenger", "instagram"])
     sender_name = serializers.CharField(required=False, default="")

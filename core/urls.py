@@ -9,6 +9,7 @@ urlpatterns = [
     path("knowledge/", views.KnowledgeBaseListCreateView.as_view(), name="knowledge-list-create"),
     path("conversations/", views.ConversationListView.as_view(), name="conversation-list"),
     path("conversations/<uuid:pk>/", views.ConversationDetailView.as_view(), name="conversation-detail"),
+    path("conversations/<uuid:pk>/toggle-human-only/", views.ToggleHumanOnlyView.as_view(), name="toggle-human-only"),
     # Scale features
     path("tags/", views.TagListCreateView.as_view(), name="tag-list-create"),
     path("tags/<uuid:pk>/", views.TagDeleteView.as_view(), name="tag-delete"),

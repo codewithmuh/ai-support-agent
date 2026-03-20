@@ -34,6 +34,8 @@ class Conversation(models.Model):
         ("email", "Email"),
         ("webchat", "Web Chat"),
         ("telegram", "Telegram"),
+        ("messenger", "Messenger"),
+        ("instagram", "Instagram"),
     ]
     STATUS_CHOICES = [
         ("active", "Active"),
@@ -49,6 +51,7 @@ class Conversation(models.Model):
         max_length=20, choices=STATUS_CHOICES, default="active"
     )
     assigned_agent = models.CharField(max_length=255, blank=True, null=True)
+    human_only = models.BooleanField(default=False)
     tags = models.ManyToManyField(
         "Tag", through="ConversationTag", related_name="conversations", blank=True
     )

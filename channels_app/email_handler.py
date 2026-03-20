@@ -25,31 +25,62 @@ def get_gmail_service():
     """
     Create and return an authenticated Gmail API service instance.
 
-    Requires the following Django settings:
-      - GOOGLE_CREDENTIALS_PATH: path to the OAuth2 credentials JSON file
-      - GOOGLE_TOKEN_PATH: path to store/retrieve the token JSON file
-
-    On first run, this will trigger an OAuth2 consent flow. Subsequent calls
-    will use the stored token, refreshing it if expired.
+    Tries database credentials first (from team Gmail config via OAuth),
+    then falls back to file-based credentials from .env.
     """
+    import json
+
+    # Try database credentials first (OAuth tokens from dashboard)
+    try:
+        from teams.models import TeamGmailConfig
+
+        gmail_config = TeamGmailConfig.objects.filter(is_active=True).first()
+        if gmail_config and gmail_config.credentials_json:
+            token_data = json.loads(gmail_config.credentials_json)
+            creds = Credentials(
+                token=token_data.get("access_token"),
+                refresh_token=token_data.get("refresh_token"),
+                token_uri="https://oauth2.googleapis.com/token",
+                client_id=gmail_config.google_client_id or getattr(settings, "GOOGLE_CLIENT_ID", ""),
+                client_secret=gmail_config.google_client_secret or getattr(settings, "GOOGLE_CLIENT_SECRET", ""),
+                scopes=GMAIL_SCOPES,
+            )
+
+            if creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+                # Update stored token
+                new_token_data = {
+                    "access_token": creds.token,
+                    "refresh_token": creds.refresh_token,
+                    "token_uri": creds.token_uri,
+                    "client_id": creds.client_id,
+                    "client_secret": creds.client_secret,
+                    "scopes": list(creds.scopes or []),
+                }
+                gmail_config.credentials_json = json.dumps(new_token_data)
+                gmail_config.save(update_fields=["credentials_json", "updated_at"])
+
+            service = build("gmail", "v1", credentials=creds)
+            return service
+    except Exception as exc:
+        logger.warning("Failed to use database Gmail credentials: %s", exc)
+
+    # Fall back to file-based credentials
     credentials_path = getattr(settings, "GOOGLE_CREDENTIALS_PATH", "")
     token_path = getattr(settings, "GOOGLE_TOKEN_PATH", "token.json")
 
     if not credentials_path:
         raise ValueError(
-            "GOOGLE_CREDENTIALS_PATH not set in Django settings. "
-            "Provide the path to your OAuth2 credentials JSON file."
+            "Gmail not configured. Connect Gmail via Settings > Gmail in the dashboard, "
+            "or set GOOGLE_CREDENTIALS_PATH in your .env file."
         )
 
     creds = None
-
-    # Load existing token
     try:
         creds = Credentials.from_authorized_user_file(token_path, GMAIL_SCOPES)
     except (FileNotFoundError, ValueError):
         pass
 
-    # Refresh or create credentials
     if creds and creds.expired and creds.refresh_token:
         try:
             creds.refresh(Request())
@@ -60,8 +91,6 @@ def get_gmail_service():
     if not creds or not creds.valid:
         flow = InstalledAppFlow.from_client_secrets_file(credentials_path, GMAIL_SCOPES)
         creds = flow.run_local_server(port=0)
-
-        # Save the token for future use
         with open(token_path, "w") as token_file:
             token_file.write(creds.to_json())
 
@@ -156,23 +185,58 @@ def send_email_reply(to: str, subject: str, body: str, thread_id: str) -> bool:
 
 def fetch_unread_emails(max_results: int = 10) -> list[dict]:
     """
-    Fetch unread emails from the inbox.
+    Fetch unread emails from the inbox that arrived since the last poll.
+
+    Uses a timestamp stored in the database (TeamGmailConfig.last_poll_at)
+    to only fetch new emails. Falls back to last 5 minutes if no timestamp.
 
     Returns a list of full Gmail message resources.
     """
+    import time
+    from django.utils import timezone
+
+    # Get the last poll timestamp
+    after_epoch = None
+    gmail_config = None
+    try:
+        from teams.models import TeamGmailConfig
+
+        gmail_config = TeamGmailConfig.objects.filter(is_active=True).first()
+        if gmail_config and hasattr(gmail_config, "last_poll_at") and gmail_config.last_poll_at:
+            after_epoch = int(gmail_config.last_poll_at.timestamp())
+    except Exception:
+        pass
+
+    # Default: only check last 5 minutes
+    if not after_epoch:
+        after_epoch = int(time.time()) - 300
+
     try:
         service = get_gmail_service()
+
+        # Gmail search query with time filter — "after:" uses epoch seconds
+        query = f"is:unread category:primary after:{after_epoch}"
+
         results = (
             service.users()
             .messages()
             .list(
                 userId="me",
-                q="is:unread category:primary",
+                q=query,
                 maxResults=max_results,
             )
             .execute()
         )
         messages = results.get("messages", [])
+
+        # Update last poll timestamp
+        if gmail_config:
+            try:
+                gmail_config.last_poll_at = timezone.now()
+                gmail_config.save(update_fields=["last_poll_at", "updated_at"])
+            except Exception:
+                pass  # Field might not exist yet
+
         if not messages:
             return []
 

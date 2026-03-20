@@ -26,12 +26,17 @@ def generate_embedding(text: str) -> list[float]:
     semantic search. Falls back to hash-based pseudo-embeddings if the
     OpenAI API key is not configured.
     """
-    if not getattr(settings, "OPENAI_API_KEY", ""):
+    from .ai_keys import get_openai_api_key
+
+    openai_key = get_openai_api_key()
+    if not openai_key:
         logger.warning("OPENAI_API_KEY not set — using pseudo-embeddings (not suitable for production)")
         return _pseudo_embedding(text)
 
     try:
-        client = _get_openai_client()
+        from openai import OpenAI
+
+        client = OpenAI(api_key=openai_key)
         response = client.embeddings.create(
             model="text-embedding-3-small",
             input=text,

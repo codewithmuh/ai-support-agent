@@ -113,6 +113,53 @@ export default function TelegramSettingsPage() {
         </div>
       )}
 
+      {/* Webhook Setup Guide */}
+      <div className="bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-800/50 rounded-xl p-5 mb-6">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-sky-100 dark:bg-sky-900/40 flex items-center justify-center shrink-0 mt-0.5">
+            <svg className="w-4 h-4 text-sky-600 dark:text-sky-400" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.07-.2c-.08-.06-.19-.04-.27-.02-.12.03-1.97 1.25-5.57 3.68-.53.36-1 .54-1.43.53-.47-.01-1.38-.27-2.05-.48-.83-.27-1.49-.42-1.43-.88.03-.24.37-.49.98-.75 3.85-1.68 6.42-2.79 7.71-3.32 3.67-1.53 4.43-1.79 4.93-1.8.11 0 .35.03.51.14.13.1.17.23.18.33.02.1.04.33.02.51z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-sky-800 dark:text-sky-300 mb-1">Webhook Setup</h3>
+            <p className="text-xs text-sky-700 dark:text-sky-400/80 leading-relaxed mb-3">
+              After saving your bot token, set the Telegram webhook so your bot receives messages:
+            </p>
+            <div className="bg-white dark:bg-slate-800 rounded-lg border border-sky-200 dark:border-sky-800/50 p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <span className="w-5 h-5 rounded-full bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-400 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+                <p className="text-xs text-gray-700 dark:text-gray-300">
+                  Message <span className="font-medium">@BotFather</span> on Telegram → <code className="text-indigo-600 dark:text-indigo-400 font-mono">/newbot</code> → copy the token
+                </p>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-5 h-5 rounded-full bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-400 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+                <div className="text-xs text-gray-700 dark:text-gray-300">
+                  Run this command to set the webhook (replace <code className="text-indigo-600 dark:text-indigo-400 font-mono">TOKEN</code> and <code className="text-indigo-600 dark:text-indigo-400 font-mono">URL</code>):
+                  <code className="block mt-1 px-2 py-1.5 bg-gray-50 dark:bg-slate-700 rounded text-[11px] text-gray-800 dark:text-gray-200 font-mono break-all leading-relaxed">
+                    curl &quot;https://api.telegram.org/bot<span className="text-indigo-600 dark:text-indigo-400">YOUR_TOKEN</span>/setWebhook?url=<span className="text-indigo-600 dark:text-indigo-400">NGROK_URL</span>/api/webhooks/telegram/&quot;
+                  </code>
+                  <span className="text-gray-500 dark:text-gray-400 mt-1 block">For local dev: <code className="text-indigo-600 dark:text-indigo-400 font-mono">ngrok http 8000</code></span>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-5 h-5 rounded-full bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-400 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
+                <p className="text-xs text-gray-700 dark:text-gray-300">
+                  Send a message to your bot — it should appear in the <Link href="/tickets" className="text-indigo-600 dark:text-indigo-400 hover:underline">ticket queue</Link>
+                </p>
+              </div>
+            </div>
+            <Link href="/docs" className="inline-flex items-center gap-1 mt-3 text-xs font-medium text-sky-700 dark:text-sky-400 hover:text-sky-900 dark:hover:text-sky-300 transition-colors">
+              View full setup guide in docs
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      </div>
+
       <form onSubmit={handleSave} className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 space-y-5">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Bot Token</label>

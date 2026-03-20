@@ -102,21 +102,35 @@ def parse_whatsapp_webhook(payload: dict) -> Optional[UnifiedMessage]:
         return None
 
 
+def _get_whatsapp_credentials() -> tuple[str, str]:
+    """Get WhatsApp credentials from database first, then fall back to .env."""
+    try:
+        from teams.models import TeamWhatsAppConfig
+
+        config = TeamWhatsAppConfig.objects.filter(is_active=True).first()
+        if config and config.access_token and config.phone_number_id:
+            return config.access_token, config.phone_number_id
+    except Exception:
+        pass
+
+    return (
+        getattr(settings, "WHATSAPP_ACCESS_TOKEN", ""),
+        getattr(settings, "WHATSAPP_PHONE_NUMBER_ID", ""),
+    )
+
+
 def send_whatsapp_message(phone_number: str, message: str) -> bool:
     """
     Send a text message to a WhatsApp user via the Cloud API.
 
-    Requires the following Django settings:
-      - WHATSAPP_ACCESS_TOKEN
-      - WHATSAPP_PHONE_NUMBER_ID
+    Reads credentials from team config in database first, falls back to .env.
     """
-    access_token = getattr(settings, "WHATSAPP_ACCESS_TOKEN", "")
-    phone_number_id = getattr(settings, "WHATSAPP_PHONE_NUMBER_ID", "")
+    access_token, phone_number_id = _get_whatsapp_credentials()
 
     if not access_token or not phone_number_id:
         logger.error(
             "WhatsApp credentials not configured. "
-            "Set WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID in settings."
+            "Configure via Settings > WhatsApp in the dashboard."
         )
         return False
 

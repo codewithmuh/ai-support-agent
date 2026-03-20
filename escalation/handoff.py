@@ -34,7 +34,9 @@ def _generate_ai_summary(conversation_history: list[dict]) -> str:
         f"[{entry['role']}] {entry['content']}" for entry in conversation_history
     )
 
-    client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+    from core.ai_keys import get_anthropic_api_key
+
+    client = anthropic.Anthropic(api_key=get_anthropic_api_key())
 
     try:
         response = client.messages.create(
@@ -77,7 +79,9 @@ def _generate_suggested_response(
         f"[{entry['role']}] {entry['content']}" for entry in conversation_history
     )
 
-    client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+    from core.ai_keys import get_anthropic_api_key
+
+    client = anthropic.Anthropic(api_key=get_anthropic_api_key())
 
     try:
         response = client.messages.create(

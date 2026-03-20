@@ -17,6 +17,9 @@ class Team(models.Model):
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True)
     plan = models.CharField(max_length=20, choices=PLAN_CHOICES, default="free")
+    # AI API keys (optional — falls back to .env if not set)
+    anthropic_api_key = models.TextField(blank=True, default="")
+    openai_api_key = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -93,11 +96,15 @@ class TeamGmailConfig(models.Model):
         on_delete=models.CASCADE,
         related_name="gmail_config",
     )
+    google_client_id = models.CharField(max_length=255, blank=True, default="")
+    google_client_secret = models.TextField(blank=True, default="")
     credentials_json = models.TextField(
+        blank=True, default="",
         help_text="OAuth token JSON. Will be encrypted in a future release."
     )
-    watch_email = models.EmailField(max_length=255)
+    watch_email = models.EmailField(max_length=255, blank=True, default="")
     is_active = models.BooleanField(default=False)
+    last_poll_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -128,6 +135,45 @@ class TeamTelegramConfig(models.Model):
 
     def __str__(self) -> str:
         return f"Telegram config for {self.team.name}"
+
+
+class TeamMessengerConfig(models.Model):
+    """Facebook Messenger & Instagram DM credentials for a team.
+
+    Both Messenger and Instagram DMs use the same Meta Graph API.
+    When instagram_enabled is True and the page_id matches the webhook
+    entry, incoming messages are treated as Instagram DMs.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    team = models.OneToOneField(
+        Team,
+        on_delete=models.CASCADE,
+        related_name="messenger_config",
+    )
+    page_access_token = models.TextField(
+        help_text="Page Access Token from Facebook Developer Portal."
+    )
+    page_id = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Facebook Page ID. Used to route webhooks.",
+    )
+    verify_token = models.CharField(max_length=255)
+    instagram_enabled = models.BooleanField(
+        default=False,
+        help_text="When True, messages from this page are treated as Instagram DMs.",
+    )
+    is_active = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "team_messenger_configs"
+
+    def __str__(self) -> str:
+        return f"Messenger config for {self.team.name}"
 
 
 class TeamAPIKey(models.Model):

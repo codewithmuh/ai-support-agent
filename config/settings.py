@@ -199,5 +199,14 @@ TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", default="")
 # Google / Gmail
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Messenger / Instagram
+# ---------------------------------------------------------------------------
+
+MESSENGER_PAGE_ACCESS_TOKEN = env("MESSENGER_PAGE_ACCESS_TOKEN", default="")
+MESSENGER_VERIFY_TOKEN = env("MESSENGER_VERIFY_TOKEN", default="")
+
 GOOGLE_CREDENTIALS_PATH = env("GOOGLE_CREDENTIALS_PATH", default="")
 GMAIL_WATCH_ADDRESS = env("GMAIL_WATCH_ADDRESS", default="")
+GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", default="")
+GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET", default="")

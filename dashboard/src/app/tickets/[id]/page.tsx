@@ -33,6 +33,7 @@ interface TicketDetail {
   };
   suggested_response?: string;
   escalation_id?: string;
+  human_only?: boolean;
 }
 
 type ResponseMode = "human" | "ai";
@@ -111,6 +112,18 @@ export default function TicketDetailPage() {
       setReplyText(ticket.suggested_response);
       textareaRef.current?.focus();
     }
+  };
+
+  const handleToggleHumanOnly = async () => {
+    if (!ticket) return;
+    try {
+      const res = await fetch(`${API_URL}/api/conversations/${ticket.id}/toggle-human-only/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ human_only: !ticket.human_only }),
+      });
+      if (res.ok) fetchTicket();
+    } catch { /* silent */ }
   };
 
   // Ctrl+Enter to send
@@ -197,7 +210,30 @@ export default function TicketDetailPage() {
               </div>
             </div>
           </div>
-          <div className="text-[10px] font-mono text-gray-400 dark:text-gray-600">#{ticket.id.slice(0, 8)}</div>
+          <div className="flex items-center gap-3">
+            {/* Human-only toggle */}
+            <button
+              onClick={handleToggleHumanOnly}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+                ticket.human_only
+                  ? "bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400"
+                  : "bg-gray-50 dark:bg-slate-700 border-gray-200 dark:border-slate-600 text-gray-500 dark:text-gray-400"
+              }`}
+              title={ticket.human_only ? "AI responses disabled — only humans can reply" : "AI is auto-responding to this ticket"}
+            >
+              {ticket.human_only ? (
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              )}
+              {ticket.human_only ? "Human Only" : "AI Active"}
+            </button>
+            <div className="text-[10px] font-mono text-gray-400 dark:text-gray-600">#{ticket.id.slice(0, 8)}</div>
+          </div>
         </div>
       </div>
 
@@ -315,7 +351,7 @@ export default function TicketDetailPage() {
         </div>
 
         {/* Right: AI Sidebar — sticky */}
-        <div className="w-72 border-l border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-y-auto p-4 hidden lg:block">
+        <div className="w-80 border-l border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-y-auto p-5 hidden lg:block">
           <AISidebar
             classification={ticket.classification}
             sentiment={ticket.sentiment}

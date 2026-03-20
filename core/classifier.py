@@ -12,7 +12,9 @@ def classify_ticket(message: str) -> dict:
 
     Returns a dict with category, confidence, and reasoning.
     """
-    client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+    from .ai_keys import get_anthropic_api_key
+
+    client = anthropic.Anthropic(api_key=get_anthropic_api_key())
 
     system_prompt = """<role>
 You are a customer support ticket classifier. Your job is to analyze incoming

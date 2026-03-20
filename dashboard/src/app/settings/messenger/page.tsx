@@ -5,24 +5,25 @@ import Link from "next/link";
 import { API_URL } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
-interface WhatsAppConfig {
-  phone_number_id: string;
-  access_token: string;
+interface MessengerConfig {
+  page_access_token: string;
+  page_id: string;
   verify_token: string;
+  instagram_enabled: boolean;
 }
 
-export default function WhatsAppSettingsPage() {
+export default function MessengerSettingsPage() {
   const { token } = useAuth();
-  const [config, setConfig] = useState<WhatsAppConfig>({
-    phone_number_id: "",
-    access_token: "",
+  const [config, setConfig] = useState<MessengerConfig>({
+    page_access_token: "",
+    page_id: "",
     verify_token: "",
+    instagram_enabled: false,
   });
   const [configExists, setConfigExists] = useState(false);
   const [showToken, setShowToken] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
   const [toast, setToast] = useState<{
     type: "success" | "error";
     message: string;
@@ -40,7 +41,7 @@ export default function WhatsAppSettingsPage() {
   useEffect(() => {
     if (!token) return;
 
-    fetch(`${API_URL}/api/team/whatsapp/`, {
+    fetch(`${API_URL}/api/team/messenger/`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => {
@@ -52,14 +53,15 @@ export default function WhatsAppSettingsPage() {
         if (data) {
           setConfigExists(true);
           setConfig({
-            phone_number_id: data.phone_number_id || "",
-            access_token: data.access_token || "",
+            page_access_token: data.page_access_token || "",
+            page_id: data.page_id || "",
             verify_token: data.verify_token || "",
+            instagram_enabled: data.instagram_enabled || false,
           });
         }
       })
       .catch(() => {
-        setToast({ type: "error", message: "Failed to load WhatsApp config" });
+        setToast({ type: "error", message: "Failed to load Messenger config" });
       })
       .finally(() => setIsLoading(false));
   }, [token]);
@@ -69,7 +71,7 @@ export default function WhatsAppSettingsPage() {
     setIsSaving(true);
 
     try {
-      const res = await fetch(`${API_URL}/api/team/whatsapp/`, {
+      const res = await fetch(`${API_URL}/api/team/messenger/`, {
         method: configExists ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
@@ -84,7 +86,7 @@ export default function WhatsAppSettingsPage() {
       }
 
       setConfigExists(true);
-      setToast({ type: "success", message: "WhatsApp config saved successfully" });
+      setToast({ type: "success", message: "Messenger config saved successfully" });
     } catch (err) {
       setToast({
         type: "error",
@@ -92,34 +94,6 @@ export default function WhatsAppSettingsPage() {
       });
     } finally {
       setIsSaving(false);
-    }
-  }
-
-  async function handleTestConnection() {
-    setIsTesting(true);
-
-    try {
-      const res = await fetch(`${API_URL}/api/team/whatsapp/test/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
-        throw new Error(error.detail || "Connection test failed");
-      }
-
-      setToast({ type: "success", message: "WhatsApp connection verified successfully" });
-    } catch (err) {
-      setToast({
-        type: "error",
-        message: err instanceof Error ? err.message : "Connection test failed",
-      });
-    } finally {
-      setIsTesting(false);
     }
   }
 
@@ -157,17 +131,17 @@ export default function WhatsAppSettingsPage() {
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
-        <span className="text-gray-900 dark:text-white font-medium">WhatsApp</span>
+        <span className="text-gray-900 dark:text-white font-medium">Messenger &amp; Instagram</span>
       </div>
 
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">WhatsApp Configuration</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Facebook Messenger &amp; Instagram</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Connect your WhatsApp Business Cloud API
+          Connect your Facebook Page to receive Messenger and Instagram DMs
         </p>
       </div>
 
-      {/* Webhook Setup Guide */}
+      {/* Setup Guide */}
       <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-xl p-5 mb-6">
         <div className="flex items-start gap-3">
           <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0 mt-0.5">
@@ -176,37 +150,43 @@ export default function WhatsAppSettingsPage() {
             </svg>
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-1">Webhook Configuration Required</h3>
+            <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-1">Setup Guide</h3>
             <p className="text-xs text-amber-700 dark:text-amber-400/80 leading-relaxed mb-3">
-              After saving your credentials, you need to configure the webhook URL in your Meta Developer Portal so WhatsApp can send incoming messages to this app.
+              Follow these steps to connect your Facebook Page for Messenger and Instagram messaging.
             </p>
             <div className="bg-white dark:bg-slate-800 rounded-lg border border-amber-200 dark:border-amber-800/50 p-3 space-y-2">
               <div className="flex items-start gap-2">
                 <span className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
                 <p className="text-xs text-gray-700 dark:text-gray-300">
-                  Go to <span className="font-medium">Meta Developer Portal</span> → Your App → WhatsApp → Configuration
+                  Go to <span className="font-medium">Meta Developer Portal</span> &rarr; Your App &rarr; Messenger &rarr; Settings
                 </p>
               </div>
               <div className="flex items-start gap-2">
                 <span className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+                <p className="text-xs text-gray-700 dark:text-gray-300">
+                  Generate a <span className="font-medium">Page Access Token</span> for your Facebook Page
+                </p>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
                 <div className="text-xs text-gray-700 dark:text-gray-300">
-                  Set <span className="font-medium">Callback URL</span> to:
+                  Set <span className="font-medium">Webhook URL</span> to:
                   <code className="block mt-1 px-2 py-1 bg-gray-50 dark:bg-slate-700 rounded text-[11px] text-indigo-600 dark:text-indigo-400 font-mono break-all">
-                    {typeof window !== "undefined" ? window.location.origin.replace("3000", "8000") : "https://your-domain.com"}/api/webhooks/whatsapp/
+                    {typeof window !== "undefined" ? window.location.origin.replace("3000", "8000") : "https://your-domain.com"}/api/webhooks/messenger/
                   </code>
                   <span className="text-gray-500 dark:text-gray-400 mt-1 block">For local dev, use ngrok: <code className="text-indigo-600 dark:text-indigo-400 font-mono">ngrok http 8000</code></span>
                 </div>
               </div>
               <div className="flex items-start gap-2">
-                <span className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
-                <p className="text-xs text-gray-700 dark:text-gray-300">
-                  Set <span className="font-medium">Verify Token</span> to the same value you enter below
-                </p>
-              </div>
-              <div className="flex items-start gap-2">
                 <span className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">4</span>
                 <p className="text-xs text-gray-700 dark:text-gray-300">
                   Subscribe to the <span className="font-medium">messages</span> webhook field
+                </p>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">5</span>
+                <p className="text-xs text-gray-700 dark:text-gray-300">
+                  For Instagram: Link your Instagram account to your Facebook Page in <span className="font-medium">Business Settings</span>
                 </p>
               </div>
             </div>
@@ -224,43 +204,21 @@ export default function WhatsAppSettingsPage() {
         <form onSubmit={handleSave} className="space-y-5">
           <div>
             <label
-              htmlFor="phone_number_id"
+              htmlFor="page_access_token"
               className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
             >
-              Phone Number ID
-            </label>
-            <input
-              id="phone_number_id"
-              type="text"
-              value={config.phone_number_id}
-              onChange={(e) =>
-                setConfig({ ...config, phone_number_id: e.target.value })
-              }
-              className="w-full px-3.5 py-2.5 rounded-lg border border-gray-200 dark:border-slate-600 text-sm text-gray-900 dark:text-white bg-white dark:bg-slate-700 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow"
-              placeholder="e.g. 123456789012345"
-            />
-            <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-              Found in your Meta Developer Portal under WhatsApp &gt; API Setup
-            </p>
-          </div>
-
-          <div>
-            <label
-              htmlFor="access_token"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
-            >
-              Access Token
+              Page Access Token
             </label>
             <div className="relative">
               <input
-                id="access_token"
+                id="page_access_token"
                 type={showToken ? "text" : "password"}
-                value={config.access_token}
+                value={config.page_access_token}
                 onChange={(e) =>
-                  setConfig({ ...config, access_token: e.target.value })
+                  setConfig({ ...config, page_access_token: e.target.value })
                 }
                 className="w-full px-3.5 py-2.5 pr-10 rounded-lg border border-gray-200 dark:border-slate-600 text-sm text-gray-900 dark:text-white bg-white dark:bg-slate-700 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow"
-                placeholder="Your permanent access token"
+                placeholder="Your Facebook Page access token"
               />
               <button
                 type="button"
@@ -280,7 +238,29 @@ export default function WhatsAppSettingsPage() {
               </button>
             </div>
             <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-              Use a permanent token from a System User for production
+              Generated from Meta Developer Portal under Messenger &gt; Settings
+            </p>
+          </div>
+
+          <div>
+            <label
+              htmlFor="page_id"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+            >
+              Page ID
+            </label>
+            <input
+              id="page_id"
+              type="text"
+              value={config.page_id}
+              onChange={(e) =>
+                setConfig({ ...config, page_id: e.target.value })
+              }
+              className="w-full px-3.5 py-2.5 rounded-lg border border-gray-200 dark:border-slate-600 text-sm text-gray-900 dark:text-white bg-white dark:bg-slate-700 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow"
+              placeholder="e.g. 123456789012345"
+            />
+            <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+              Found in your Facebook Page &gt; About &gt; Page ID
             </p>
           </div>
 
@@ -306,6 +286,26 @@ export default function WhatsAppSettingsPage() {
             </p>
           </div>
 
+          <div className="flex items-center gap-3">
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={config.instagram_enabled}
+                onChange={(e) =>
+                  setConfig({ ...config, instagram_enabled: e.target.checked })
+                }
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-gray-200 dark:bg-slate-600 peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600" />
+            </label>
+            <div>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Instagram DMs Enabled</span>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                Receive Instagram Direct Messages through your linked Facebook Page
+              </p>
+            </div>
+          </div>
+
           <div className="flex items-center gap-3 pt-2">
             <button
               type="submit"
@@ -313,14 +313,6 @@ export default function WhatsAppSettingsPage() {
               className="px-5 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isSaving ? "Saving..." : "Save Configuration"}
-            </button>
-            <button
-              type="button"
-              onClick={handleTestConnection}
-              disabled={isTesting || !config.phone_number_id || !config.access_token}
-              className="px-5 py-2.5 rounded-lg border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isTesting ? "Testing..." : "Test Connection"}
             </button>
           </div>
         </form>
