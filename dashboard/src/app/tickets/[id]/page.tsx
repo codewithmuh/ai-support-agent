@@ -53,6 +53,7 @@ export default function TicketDetailPage() {
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
   const [resolving, setResolving] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [responseMode, setResponseMode] = useState<ResponseMode>("human");
   const [showSuccess, setShowSuccess] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -112,6 +113,19 @@ export default function TicketDetailPage() {
       setReplyText(ticket.suggested_response);
       textareaRef.current?.focus();
     }
+  };
+
+  const handleCloseTicket = async () => {
+    if (!ticket) return;
+    setClosing(true);
+    try {
+      const res = await fetch(`${API_URL}/api/bulk-actions/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversation_ids: [ticket.id], action: "resolve" }),
+      });
+      if (res.ok) fetchTicket();
+    } catch { /* silent */ } finally { setClosing(false); }
   };
 
   const handleToggleHumanOnly = async () => {
@@ -211,6 +225,23 @@ export default function TicketDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {/* Close / Resolve ticket */}
+            {!isResolved && (
+              <button
+                onClick={handleCloseTicket}
+                disabled={closing}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 disabled:opacity-50"
+              >
+                {closing ? (
+                  <div className="w-3 h-3 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+                Close Ticket
+              </button>
+            )}
             {/* Human-only toggle */}
             <button
               onClick={handleToggleHumanOnly}
