@@ -1,12 +1,34 @@
-# AI Support Agent — Multi-Channel Customer Support System
+# AI Support Agent — Multi-Channel Autonomous Customer Support System
 
 > Replace a 3-person support team with AI. Handles WhatsApp, Telegram, Email, and Web Chat — costs **~$85/mo** instead of $1,500+ on Intercom or Zendesk.
 
-Built with Django, Claude AI (Haiku + Sonnet), PostgreSQL + pgvector, and Next.js. Fully self-hosted via Docker Compose.
+Built with **Django**, **Claude AI (Haiku + Sonnet)**, **PostgreSQL + pgvector (RAG)**, and **Next.js 15**. Fully self-hosted and orchestratable with **Docker Compose**.
 
-**Full tutorial on YouTube:** [CodeWithMuh](https://youtube.com/@codewithmuh)
+[![Release](https://img.shields.io/github/v/release/codewithmuh/ai-support-agent?style=flat-square&color=blue)](https://github.com/codewithmuh/ai-support-agent/releases)
+[![Stars](https://img.shields.io/github/stars/codewithmuh/ai-support-agent?style=flat-square&color=gold)](https://github.com/codewithmuh/ai-support-agent/stargazers)
+[![Forks](https://img.shields.io/github/forks/codewithmuh/ai-support-agent?style=flat-square&color=blueviolet)](https://github.com/codewithmuh/ai-support-agent/network/members)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js)](https://nextjs.org)
+[![Django](https://img.shields.io/badge/Django-5.0-092E20?style=flat-square&logo=django)](https://djangoproject.com)
+[![Claude AI](https://img.shields.io/badge/Anthropic-Claude%20Haiku%20%2B%20Sonnet-d97706?style=flat-square)](https://anthropic.com)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docker.com)
+[![YouTube](https://img.shields.io/badge/YouTube-codewithmuh-red?style=flat-square&logo=youtube)](https://youtube.com/@codewithmuh)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Muhammad%20Rashid-blue?style=flat-square&logo=linkedin)](https://www.linkedin.com/in/muhammadrashid-daha/)
 
-![Support AI Dashboard](https://img.shields.io/badge/Status-Production_Ready-brightgreen) ![License](https://img.shields.io/badge/License-MIT-blue) ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white) ![Claude](https://img.shields.io/badge/AI-Claude_Sonnet-orange)
+📺 **Full YouTube Masterclass:** [CodeWithMuh](https://youtube.com/@codewithmuh)
+
+---
+
+## 📑 Table of Contents
+- [What It Does & The 80/20 Approach](#what-it-does)
+- [System Architecture & Flow](#architecture)
+- [Tech Stack & Cost Breakdown](#tech-stack)
+- [Core AI Capabilities & Guardrails](#features)
+- [Quick Start Guide with Docker](#quick-start)
+- [Multi-Channel Integrations](#integrations-setup)
+- [API Endpoints Reference](#api-reference)
+- [Author & Community](#author)
+- [License](#license)
 
 ---
 
@@ -31,6 +53,64 @@ Built with Django, Claude AI (Haiku + Sonnet), PostgreSQL + pgvector, and Next.j
 ---
 
 ## Architecture
+
+```mermaid
+graph TB
+    subgraph Channels["Customer Channels"]
+        WA["WhatsApp<br/>Cloud API"]
+        EM["Email<br/>Gmail API"]
+        WC["Web Chat<br/>WebSocket"]
+    end
+
+    subgraph Docker["Docker Compose Stack"]
+        subgraph Backend["Django Backend :8000"]
+            WH["Webhook Endpoints"]
+            WS["WebSocket Consumer"]
+            UM["Unified Message Handler"]
+
+            subgraph AIBrain["AI Brain"]
+                CL["Ticket Classifier<br/>Claude Haiku"]
+                KB["Knowledge Base<br/>pgvector RAG"]
+                RG["Response Generator<br/>Claude Sonnet"]
+                GR["Anti-Hallucination<br/>Guardrails"]
+            end
+
+            subgraph Escalation["Escalation Engine"]
+                ED["3-Trigger Detector"]
+                SA["Sentiment Analysis"]
+                HO["Handoff Builder"]
+            end
+        end
+
+        DB[("PostgreSQL + pgvector")]
+        RD[("Redis Channel Layer")]
+
+        subgraph Frontend["Next.js Dashboard :3000"]
+            DASH["Agent Overview"]
+            TQ["Ticket Queue"]
+            TV["Detail View"]
+            CW["Chat Widget"]
+        end
+    end
+
+    HUMAN["Human Support Agent"]
+
+    WA -->|POST webhook| WH
+    EM -->|poll/webhook| WH
+    WC -->|ws://| WS
+    WH --> UM
+    WS --> UM
+    UM --> CL
+    CL -->|"confidence < 0.7<br/>anger / human request"| ED
+    CL -->|"confidence >= 0.7"| KB
+    ED --> SA --> HO --> DB
+    KB --> RG --> GR --> UM
+    UM --> DB
+    WS <-->|pub/sub| RD
+    Frontend -->|REST API| Backend
+    Frontend <-->|WebSocket| RD
+    HUMAN -->|resolves ticket| TV
+```
 
 <img width="1366" height="879" alt="Screenshot 2026-03-18 at 11 51 45 PM" src="https://github.com/user-attachments/assets/34fbf1d4-7bc2-4a1d-afc4-89fa29c03bbe" />
 
